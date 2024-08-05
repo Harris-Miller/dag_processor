@@ -1,0 +1,18 @@
+{
+  "name": "dag_processor",
+  "private": true,
+  "module": "src/main.ts",
+  "type": "module",
+  "dependencies": {
+    "@types/ramda": "^0.30.1",
+    "elysia": "^1.1.5",
+    "ramda": "^0.30.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "eslint-config-harris": "^4.0.0-rc.13"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
