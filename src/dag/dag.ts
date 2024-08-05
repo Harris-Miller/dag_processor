@@ -4,6 +4,19 @@ import * as R from 'ramda';
 
 export type Dag = Record<string, string[]>;
 
+export type NodeMeta = {
+  hash: string;
+  id: string;
+  upstream: Record<string, string>;
+};
+
+export type DagMeta = {
+  dag: Dag;
+  hash: string;
+  nodeHashes: Record<string, string>;
+  sortedNodes: string[];
+};
+
 export type DownStreams = Record<string, string[]>;
 
 export type Hash = string;

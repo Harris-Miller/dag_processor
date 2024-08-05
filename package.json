@@ -13,7 +13,8 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "eslint-config-harris": "^4.0.0-rc.13"
+    "eslint-config-harris": "^4.0.0-rc.13",
+    "pm2": "^5.4.2"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
