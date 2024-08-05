@@ -12,19 +12,27 @@ const eslintConfig = [
         Bun: true,
       },
     },
+    settings: {
+      'import/core-modules': ['bun:test']
+    }
   },
   {
     rules: {
       'no-console': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
-    },
-  },
-  {
-    files: ['lib/searchAlgorithms/**'],
-    rules: {
-      'func-style': 'off',
-      'no-continue': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          args: 'all',
+          argsIgnorePattern: '^_',
+          caughtErrors: 'all',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
     },
   },
   {
