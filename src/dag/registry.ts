@@ -30,5 +30,6 @@ export const create = (dag: Dag) => {
       nodeHashes,
       sortedNodes: topSort(dag),
     };
+    hashToDagMeta.set(dagHash, dagMeta);
   }
 };
