@@ -1,17 +1,17 @@
 type NodeStatus = 'error' | 'not_yet_started' | 'ok' | 'processing';
 
-type DagNode = {
+export type NodeMeta = {
   hash: string;
   id: string;
   status: NodeStatus;
   total_time: number | undefined;
-  upstream: Record<string, string>;
+  upstreamHashes: string[];
 };
 
-const createDagNode = (id: string, hash: string): DagNode => ({
+export const createDagNode = (id: string, hash: string, upstreamHashes: string[]): NodeMeta => ({
   hash,
   id,
   status: 'not_yet_started',
   total_time: undefined,
-  upstream: {},
+  upstreamHashes,
 });

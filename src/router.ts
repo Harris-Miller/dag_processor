@@ -1,18 +1,20 @@
 import { Elysia } from 'elysia';
 
 import type { Dag } from './dag/dag';
-import { getDag, registerDag } from './dag/registry';
+import { create, get } from './dag/registry';
 
 const app = new Elysia();
 
 app
-  .get('/:id', ({ params: { id } }) => {
+  .get('/:id', async ({ params: { id } }) => {
     console.log('GET /:id', id);
-    return getDag(id) ?? 'Error!';
+    const dagMeta = await get(id);
+    return dagMeta ?? 'Error!';
   })
-  .post('/', ({ body }) => {
+  .post('/', async ({ body }) => {
     console.log('POST /', body);
-    return registerDag((body as { data: Dag }).data);
+    const a = await create((body as { data: Dag }).data);
+    return a;
   });
 
 export { app };

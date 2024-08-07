@@ -1,35 +1,49 @@
-import { type Dag, type DagMeta, hash, topSort } from './dag';
+import { isNil, isNotNil } from 'ramda';
 
-const hashToDagMeta = new Map<string, DagMeta>();
+import { hGetDag, hGetNode, hSetDag, hSetNode } from '../redis';
 
-// export const registerDag = (dag: Dag) => {
-//   const { dag: dagHash } = hash(dag);
-//   hashToDag.set(dagHash, dag);
-//   return dagHash;
-// };
+import { type Dag, hash, topSort } from './dag';
+import { createDagNode, type NodeMeta } from './node';
 
-// export const hasDag = (dag: Dag) => {
-//   const { dag: dagHash } = hash(dag);
-//   return dagHash in hashToDag;
-// };
-
-// export const getDag = (dagHash: string) => {
-//   console.log(`Getting dag for "${dagHash}"`);
-//   return hashToDag.get(dagHash);
-// };
-
-export const create = (dag: Dag) => {
+export const create = async (dag: Dag) => {
   const { dag: dagHash, nodes: nodeHashes } = hash(dag);
 
-  if (hashToDagMeta.has(dagHash)) {
-    // TODO
-  } else {
-    const dagMeta: DagMeta = {
+  let dagMeta = await hGetDag(dagHash);
+
+  if (isNil(dagMeta)) {
+    dagMeta = {
       dag,
-      hash: dagHash,
+      id: dagHash,
       nodeHashes,
       sortedNodes: topSort(dag),
     };
-    hashToDagMeta.set(dagHash, dagMeta);
+
+    await hSetDag(dagHash, dagMeta);
   }
+
+  const nodeMetasEntries = await Promise.all(
+    Object.entries(nodeHashes).map(async ([nodeId, nodeHash]): Promise<[string, NodeMeta]> => {
+      const nodeMetaFromCache = await hGetNode(nodeHash);
+
+      if (isNotNil(nodeMetaFromCache)) {
+        return [nodeId, nodeMetaFromCache];
+      }
+
+      const upstreamHashes = dag[nodeId]!.map(id => nodeHashes[id]!);
+      const nodeMeta = createDagNode(nodeId, nodeHash, upstreamHashes);
+      await hSetNode(nodeHash, nodeMeta);
+
+      return [nodeId, nodeMeta];
+    }),
+  );
+
+  const nodeMetas = Object.fromEntries(nodeMetasEntries);
+
+  return {
+    dag: dagMeta.dag,
+    id: dagMeta.id,
+    nodes: nodeMetas,
+  };
 };
+
+export const get = async (dagHash: string) => hGetDag(dagHash);
