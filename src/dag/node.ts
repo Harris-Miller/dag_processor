@@ -4,14 +4,14 @@ export type NodeMeta = {
   hash: string;
   id: string;
   status: NodeStatus;
-  total_time: number | undefined;
-  upstreamHashes: string[];
+  totalTime: number | null;
+  upstream: Record<string, string>;
 };
 
-export const createDagNode = (id: string, hash: string, upstreamHashes: string[]): NodeMeta => ({
+export const createDagNode = (id: string, hash: string, upstream: Record<string, string>): NodeMeta => ({
   hash,
   id,
   status: 'not_yet_started',
-  total_time: undefined,
-  upstreamHashes,
+  totalTime: null,
+  upstream,
 });

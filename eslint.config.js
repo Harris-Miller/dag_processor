@@ -10,6 +10,7 @@ const eslintConfig = [
       globals: {
         ...globals.nodeBuiltin,
         Bun: true,
+        Worker: true
       },
     },
     settings: {

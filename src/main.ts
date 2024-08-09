@@ -10,3 +10,7 @@ console.log(`🦊 Elysia is running at ${app.server?.hostname}:${app.server?.por
 process.on('exit', () => {
   redisClient.disconnect();
 });
+
+process.on('SIGINT', () => {
+  redisClient.disconnect();
+});

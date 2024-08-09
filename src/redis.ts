@@ -23,3 +23,7 @@ export const hGetNode = async (hash: string) => {
   const dagNodeString = await redisClient.hGet('dagNode', hash);
   return isNotNil(dagNodeString) ? (JSON.parse(dagNodeString) as NodeMeta) : undefined;
 };
+
+export const setDagForNode = (nodeHash: string, dagHash: string) => redisClient.rPush(nodeHash, dagHash);
+
+export const getDagsForNode = async (nodeHash: string) => redisClient.lRange(nodeHash, 0, -1);
