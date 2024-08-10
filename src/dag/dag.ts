@@ -1,18 +1,21 @@
 import objectHash from 'object-hash';
 import * as R from 'ramda';
 
-export type Dag = Record<string, string[]>;
+export type Hash = string;
+
+export type NodeId = string;
+
+export type Dag = Record<NodeId, NodeId[]>;
 
 export type DagMeta = {
   dag: Dag;
+  downstreams: Record<Hash, Hash[]>;
   id: string;
-  nodeHashes: Record<string, string>;
-  sortedNodes: string[];
+  nodeHashes: Record<NodeId, Hash>;
+  sortedNodes: NodeId[];
 };
 
-export type DownStreams = Record<string, string[]>;
-
-export type Hash = string;
+export type Downstreams = Record<NodeId, Hash[]>;
 
 export const topSort = (dag: Dag) => {
   const asEntries = Object.entries(dag);
@@ -57,8 +60,8 @@ export const hash = (dag: Dag) => {
   return { dag: dagHash, nodes: nodeHashes };
 };
 
-export const calcDownStreams = (dag: Dag) =>
-  Object.entries(dag).reduce<DownStreams>(
+export const calcDownstreams = (dag: Dag) =>
+  Object.entries(dag).reduce<Downstreams>(
     (acc, [downId, ups]) =>
       ups.reduce((a, id) => {
         // eslint-disable-next-line no-param-reassign

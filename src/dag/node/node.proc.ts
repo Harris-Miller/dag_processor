@@ -1,6 +1,8 @@
 // prevents TS errors
 declare const self: Worker;
 
+console.log('node.proc started!');
+
 const wait = async (ms: number) =>
   new Promise(resolve => {
     setTimeout(resolve, Math.floor(Math.random() * ms));

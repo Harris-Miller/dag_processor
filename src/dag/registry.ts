@@ -1,41 +1,45 @@
-import { isNil, isNotNil } from 'ramda';
+import * as R from 'ramda';
 
-import { hGetDag, hGetNode, hSetDag, hSetNode, setDagForNode } from '../redis';
+import { getDag, getNode, setDag, setDagForNode, setNode } from '../redis';
 
-import { type Dag, hash, topSort } from './dag';
+import { calcDownstreams, type Dag, type Downstreams, type Hash, hash, topSort } from './dag';
 import { createDagNode, type NodeMeta } from './node';
+import { beginNode } from './node/registry';
 
 export const create = async (dag: Dag) => {
   const { dag: dagHash, nodes: nodeHashes } = hash(dag);
 
-  let dagMeta = await hGetDag(dagHash);
+  let dagMeta = await getDag(dagHash);
 
-  if (isNil(dagMeta)) {
+  if (R.isNil(dagMeta)) {
+    const downstreams = Object.entries(calcDownstreams(dag)).reduce<Downstreams>((acc, [key, value]) => {
+      // eslint-disable-next-line no-param-reassign
+      acc[nodeHashes[key]!] = value.map(k => nodeHashes[k]!);
+      return acc;
+    }, {});
+
     dagMeta = {
       dag,
+      downstreams,
       id: dagHash,
       nodeHashes,
       sortedNodes: topSort(dag),
     };
 
-    await hSetDag(dagHash, dagMeta);
+    await setDag(dagHash, dagMeta);
   }
 
   const nodeMetasEntries = await Promise.all(
     Object.entries(nodeHashes).map(async ([nodeId, nodeHash]): Promise<[string, NodeMeta]> => {
-      const nodeMetaFromCache = await hGetNode(nodeHash);
+      const nodeMetaFromCache = await getNode(nodeHash);
 
-      if (isNotNil(nodeMetaFromCache)) {
+      if (R.isNotNil(nodeMetaFromCache)) {
         return [nodeId, nodeMetaFromCache];
       }
 
-      const upstreamHashes = dag[nodeId]!.reduce<Record<string, string>>((acc, id) => {
-        // eslint-disable-next-line no-param-reassign
-        acc[id] = nodeHashes[id]!;
-        return acc;
-      }, {});
+      const upstreamHashes = dag[nodeId]!.map(id => nodeHashes[id]!);
       const nodeMeta = createDagNode(nodeId, nodeHash, upstreamHashes);
-      await hSetNode(nodeHash, nodeMeta);
+      await setNode(nodeHash, nodeMeta);
       await setDagForNode(nodeHash, dagHash);
 
       return [nodeId, nodeMeta];
@@ -44,17 +48,30 @@ export const create = async (dag: Dag) => {
 
   nodeMetasEntries.forEach(([_, nodeMeta]) => {
     if (Object.keys(nodeMeta.upstream).length === 0) {
+      console.log(`beginNode for ${nodeMeta.id}`);
       beginNode(nodeMeta);
     }
   });
 
   const nodeMetas = Object.fromEntries(nodeMetasEntries);
 
-  return {
-    dag: dagMeta.dag,
-    id: dagMeta.id,
-    nodes: nodeMetas,
-  };
+  return { ...dagMeta, nodes: nodeMetas };
 };
 
-export const get = async (dagHash: string) => hGetDag(dagHash);
+export const get = async (dagHash: string) => {
+  const dagMeta = await getDag(dagHash);
+  if (R.isNil(dagMeta)) return undefined;
+
+  const nodeMetas = await R.flow(dagMeta.nodeHashes, [
+    x => Object.values(x),
+    xs =>
+      xs.map(async nodeHash => {
+        const nodeMetaFromCache = await getNode(nodeHash);
+        return [nodeHash, nodeMetaFromCache!] as [Hash, NodeMeta];
+      }),
+    x => Promise.all(x),
+    R.andThen((xs: [Hash, NodeMeta][]) => Object.fromEntries(xs)),
+  ]);
+
+  return { ...dagMeta, nodes: nodeMetas };
+};

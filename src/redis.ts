@@ -10,20 +10,25 @@ export const redisClient = await createClient()
   })
   .connect();
 
-export const hSetDag = (hash: string, dag: DagMeta) => redisClient.hSet('dag', hash, JSON.stringify(dag));
+await redisClient.flushAll();
 
-export const hGetDag = async (hash: string) => {
-  const dagNodeString = await redisClient.hGet('dag', hash);
+export const setDag = (hash: string, dag: DagMeta) => redisClient.hSet('dag:table', hash, JSON.stringify(dag));
+
+export const getDag = async (hash: string) => {
+  const dagNodeString = await redisClient.hGet('dag:table', hash);
   return isNotNil(dagNodeString) ? (JSON.parse(dagNodeString) as DagMeta) : undefined;
 };
 
-export const hSetNode = (hash: string, node: NodeMeta) => redisClient.hSet('dagNode', hash, JSON.stringify(node));
+export const setNode = (hash: string, node: NodeMeta) => redisClient.hSet('dagNode:table', hash, JSON.stringify(node));
 
-export const hGetNode = async (hash: string) => {
-  const dagNodeString = await redisClient.hGet('dagNode', hash);
+export const getNode = async (hash: string) => {
+  const dagNodeString = await redisClient.hGet('dagNode:table', hash);
   return isNotNil(dagNodeString) ? (JSON.parse(dagNodeString) as NodeMeta) : undefined;
 };
 
-export const setDagForNode = (nodeHash: string, dagHash: string) => redisClient.rPush(nodeHash, dagHash);
+export const getNodes = async (hashes: string[]) => Promise.all(hashes.map(getNode));
 
-export const getDagsForNode = async (nodeHash: string) => redisClient.lRange(nodeHash, 0, -1);
+export const setDagForNode = (nodeHash: string, dagHash: string) =>
+  redisClient.sAdd(`nodeBelongsToDags:${nodeHash}`, dagHash);
+
+export const getDagsForNode = async (nodeHash: string) => redisClient.sMembers(`nodeBelongsToDags:${nodeHash}`);

@@ -1,14 +1,16 @@
+import type { Hash } from './dag';
+
 type NodeStatus = 'error' | 'not_yet_started' | 'ok' | 'processing';
 
 export type NodeMeta = {
-  hash: string;
+  hash: Hash;
   id: string;
   status: NodeStatus;
   totalTime: number | null;
-  upstream: Record<string, string>;
+  upstream: Hash[];
 };
 
-export const createDagNode = (id: string, hash: string, upstream: Record<string, string>): NodeMeta => ({
+export const createDagNode = (id: string, hash: Hash, upstream: Hash[]): NodeMeta => ({
   hash,
   id,
   status: 'not_yet_started',
