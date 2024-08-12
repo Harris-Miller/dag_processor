@@ -1,7 +1,7 @@
 import { Elysia } from 'elysia';
 
 import type { Dag } from './dag/dag';
-import { create, get } from './dag/registry';
+import { create, get } from './registry1/dag.reg';
 
 const app = new Elysia();
 

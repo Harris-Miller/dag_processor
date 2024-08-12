@@ -1,10 +1,10 @@
 import * as R from 'ramda';
 
+import { calcDownstreams, type Dag, type Downstreams, type Hash, hash, topSort } from '../dag/dag';
+import { createDagNode, type NodeMeta } from '../dag/node';
 import { getDag, getNode, setDag, setDagForNode, setNode } from '../redis';
 
-import { calcDownstreams, type Dag, type Downstreams, type Hash, hash, topSort } from './dag';
-import { createDagNode, type NodeMeta } from './node';
-import { beginNode } from './node/registry';
+import { beginNode } from './node.reg';
 
 export const create = async (dag: Dag) => {
   const { dag: dagHash, nodes: nodeHashes } = hash(dag);

@@ -1,9 +1,10 @@
 import * as R from 'ramda';
 
-import { getDag, getDagsForNode, getNode, getNodes, setNode } from '../../redis';
-import { AsyncQueue } from '../../utils/asyncQueue/asyncQueue';
-import type { DagMeta } from '../dag';
-import type { NodeMeta } from '../node';
+import type { DagMeta } from '../dag/dag';
+import type { NodeMeta } from '../dag/node';
+import { getDag, getDagsForNode, getNode, getNodes, setNode } from '../redis';
+
+import { AsyncQueue } from './asyncQueue';
 
 const asyncQueue = new AsyncQueue();
 
