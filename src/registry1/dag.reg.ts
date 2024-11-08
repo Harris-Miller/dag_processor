@@ -4,7 +4,8 @@ import { calcDownstreams, type Dag, type Downstreams, type Hash, hash, topSort }
 import { createDagNode, type NodeMeta } from '../dag/node';
 import { getDag, getNode, setDag, setDagForNode, setNode } from '../redis';
 
-import { beginNode } from './node.reg';
+import { nodeQueue } from './bullQueue';
+// import { beginNode } from './node.reg';
 
 export const create = async (dag: Dag) => {
   const { dag: dagHash, nodes: nodeHashes } = hash(dag);
@@ -49,7 +50,7 @@ export const create = async (dag: Dag) => {
   nodeMetasEntries.forEach(([_, nodeMeta]) => {
     if (Object.keys(nodeMeta.upstream).length === 0) {
       console.log(`beginNode for ${nodeMeta.id}`);
-      beginNode(nodeMeta);
+      nodeQueue.add('node', { nodeMeta });
     }
   });
 

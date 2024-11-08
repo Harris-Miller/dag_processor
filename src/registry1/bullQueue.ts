@@ -1,13 +1,46 @@
+import { Queue, Worker } from 'bullmq';
+import IORedis from 'ioredis';
 import * as R from 'ramda';
+
+import os from 'node:os';
 
 import type { DagMeta } from '../dag/dag';
 import type { NodeMeta } from '../dag/node';
 import { getDag, getDagsForNode, getNode, getNodes, setNode } from '../redis';
 
-// import { AsyncQueue } from './asyncQueue';
-import { nodeQueue } from './bullQueue';
+const concurrency = Math.floor(os.cpus().length - 1);
 
-// const asyncQueue = new AsyncQueue();
+const wait = async (ms: number) =>
+  new Promise(resolve => {
+    setTimeout(resolve, Math.floor(Math.random() * ms));
+  });
+
+const connection = new IORedis({ maxRetriesPerRequest: null });
+
+export const nodeQueue = new Queue('node-queue', { connection });
+
+export const readyQueue = new Queue('ready-queue', { connection });
+
+export const nodeWorker = new Worker<{ nodeMeta: NodeMeta }>(
+  'node-queue',
+  async job => {
+    const { nodeMeta } = job.data;
+
+    await setNode(nodeMeta.hash, { ...nodeMeta, status: 'processing' });
+
+    console.log('bullQueue started!');
+
+    const startTime = Date.now();
+    await wait(5_000);
+    const endTime = Date.now();
+    const totalTime = endTime - startTime;
+
+    console.log(`bullQueue finish, took ${totalTime} ms`);
+
+    readyQueue.add('node', { nodeMeta, totalTime });
+  },
+  { concurrency, connection },
+);
 
 const getNextNodesToProcess = async (nodeHash: string) => {
   const dagHashes = await getDagsForNode(nodeHash);
@@ -54,25 +87,20 @@ const getNextNodesToProcess = async (nodeHash: string) => {
   return okToProcessEntries;
 };
 
-export const beginNode = (nodeMeta: NodeMeta): void => {
-  // const procNode = async () => {
-  //   await setNode(nodeMeta.hash, { ...nodeMeta, status: 'processing' });
+export const readyWorker = new Worker<{ nodeMeta: NodeMeta; totalTime: number }>(
+  'ready-queue',
+  async job => {
+    const { nodeMeta, totalTime } = job.data;
 
-  //   const totalTime = await new Promise<number>((resolve, _reject) => {
-  //     console.log('creating worker');
-  //     const worker = new Worker(new URL('node.proc.ts', import.meta.url).href);
-  //     worker.addEventListener('message', (event: Bun.MessageEvent<{ totalTime: number }>) => {
-  //       resolve(event.data.totalTime);
-  //     });
-  //   });
+    await setNode(nodeMeta.hash, { ...nodeMeta, status: 'ok', totalTime });
 
-  //   await setNode(nodeMeta.hash, { ...nodeMeta, status: 'ok', totalTime });
+    const nextNodes = await getNextNodesToProcess(nodeMeta.hash);
 
-  //   const nextNodes = await getNextNodesToProcess(nodeMeta.hash);
+    console.log('nextNodes', nextNodes);
 
-  //   nextNodes.forEach(beginNode);
-  // };
-
-  // asyncQueue.push(procNode);
-  nodeQueue.add('node', { nodeMeta });
-};
+    nextNodes.forEach(nm => {
+      nodeQueue.add('node', { nodeMeta: nm });
+    });
+  },
+  { connection },
+);
